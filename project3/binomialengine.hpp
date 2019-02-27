@@ -125,8 +125,10 @@ namespace QuantLib {
         option.initialize(lattice, maturity);
 
         // Partial derivatives calculated from various points in the
-        // binomial tree 
+        // binomial tree
         // (see J.C.Hull, "Options, Futures and other derivatives", 6th edition, pp 397/398)
+
+        /**
 
         // Rollback to third-last step, and get underlying prices (s2) &
         // option values (p2) at this point
@@ -169,6 +171,40 @@ namespace QuantLib {
                                            results_.value,
                                            results_.delta,
                                            results_.gamma);
+
+
+        **/
+
+        // Rollback to last step, and get underlying prices (s0) &
+        // option values (p0) at this point
+        option.rollback(grid[0]);
+        Array va0(option.values());
+        QL_ENSURE(va0.size() == 3, "Expect 3 nodes in grid at second step");
+        Real p0u = va0[2]; // up
+        Real p0m = va0[1]; // mid
+        Real p0d = va0[0]; // down (low)
+        Real s0u = lattice->underlying(0, 2); // up price
+        Real s0m = lattice->underlying(0, 1); // middle price
+        Real s0d = lattice->underlying(0, 0); // down (low) price
+
+        // calculate gamma by taking the first derivate of the two deltas
+        Real delta0u = (p0u - p0m)/(s0u-s0m);
+        Real delta0d = (p0m-p0d)/(s0m-s0d);
+        Real delta0 = (delta0u+delta0d)/2;
+        Real gamma0 = (delta0u - delta0d) / ((s0u-s0d)/2);
+
+
+        // Store results
+        results_.value = p0m;
+        results_.delta = delta0;
+        results_.gamma = gamma0;
+        results_.theta = blackScholesTheta(process_,
+                                           results_.value,
+                                           results_.delta,
+                                           results_.gamma);
+
+
+
     }
 
 }
